@@ -300,6 +300,12 @@ class SpatialMatrix {
       }
     }));
   }
+  
+  dispatchFloorChanged() {
+    window.dispatchEvent(new CustomEvent('os:floor_changed', {
+      detail: { floor: this.currentZ }
+    }));
+  }
 
   triggerResistance() {
     const baseTx = (this.currentX * 100) - 100;
