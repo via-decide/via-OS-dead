@@ -57,7 +57,7 @@ const RoomMatrix = new ProceduralRoomEngine();
 // =============================================================================
 class SpatialMatrix {
   constructor() {
-    this.canvas    = document.getElementById('spatial-canvas');
+    this.windowManager = document.getElementById('window-manager');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
 
@@ -65,10 +65,13 @@ class SpatialMatrix {
     this.currentSeed = '0,0';
     this.currentZ = 0;
 
-    this.ensureNodeExists(); // Populates initial content
     this.attachDelegatedListeners();
     this.attachWarpListener();
-    this.updateHUD(RoomMatrix.getRoom(this.currentSeed, this.currentZ));
+    
+    // Spawn initial OS Nexus window
+    const room = RoomMatrix.getRoom(this.currentSeed, this.currentZ);
+    this.spawnWindow(room, this.currentSeed);
+    this.updateHUD(room);
   }
 
   attachWarpListener() {
@@ -86,34 +89,19 @@ class SpatialMatrix {
     const glyphIntent = window.GlyphRegistry ? window.GlyphRegistry[seed] : null;
 
     if (glyphIntent) {
-      // Warp out visually to hide the OS canvas
-      this.centerNode.classList.add('warp-transition', 'warp-out');
-      await new Promise(r => setTimeout(r, 400));
-      
-      // Temporary loading text while jumping out of via-OS into Android
-      this.centerNode.innerHTML = `<h2 style="color:var(--matrix-green); text-shadow:0 0 20px var(--matrix-green); border:1px solid var(--matrix-green); padding:20px;">[ INITIATING HANDOFF : ${glyphIntent.name.toUpperCase()} ]</h2>`;
-      this.centerNode.classList.remove('warp-out');
-      this.centerNode.classList.add('warp-in');
+      // Spawn temporary handoff window
+      const tempWin = this.spawnWindow({ title: glyphIntent.name, z: 0 }, seed, true);
 
       // Execute Native Action
       if (glyphIntent.action === "link") {
-        // Try deep linking to Android app
         window.location.href = glyphIntent.link;
-        
-        // Setup a 1.5s fallback to trigger the PWA-safe web equivalent if native fails
-        setTimeout(() => {
-          // If the page is still active here, the native link probably failed
-          window.location.href = glyphIntent.fallback;
-        }, 1500);
+        setTimeout(() => { window.location.href = glyphIntent.fallback; }, 1500);
       } 
       else if (glyphIntent.action === "file_picker") {
         const filePicker = document.getElementById('native-file-picker');
         if (filePicker) filePicker.click();
         
-        // Reset the OS back to Core after summoning the file intent
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('os:pattern_locked', { detail: { seed: '0,0' } }));
-        }, 800);
+        setTimeout(() => { tempWin.remove(); }, 800);
       }
       return; 
     }
@@ -123,22 +111,8 @@ class SpatialMatrix {
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
 
-    // Phase 1: Warp out
-    this.centerNode.classList.add('warp-transition', 'warp-out');
-    
-    await new Promise(r => setTimeout(r, 400));
-    
-    // Phase 2: Inject remote data
+    this.spawnWindow(room, seed);
     this.updateHUD(room);
-    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
-
-    // Phase 3: Settle with flash
-    this.centerNode.classList.remove('warp-out');
-    this.centerNode.classList.add('warp-in');
-    
-    await new Promise(r => setTimeout(r, 600));
-    this.centerNode.classList.remove('warp-transition', 'warp-in');
-
     this.dispatchNodeChanged(room);
   }
 
@@ -183,12 +157,39 @@ class SpatialMatrix {
     node.innerHTML = html;
   }
 
-  ensureNodeExists() {
-    this.canvas.innerHTML = '';
-    this.centerNode = document.createElement('div');
-    this.centerNode.className = 'os-node discovery-node centered';
-    this.canvas.appendChild(this.centerNode);
-    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
+  spawnWindow(room, seed, isTemporary = false) {
+    if (!isTemporary && this.windowManager.children.length >= 2) {
+      // Enforce max 2 windows, remove oldest (FIFO)
+      const oldest = this.windowManager.firstElementChild;
+      oldest.style.transform = 'scale(0.9)';
+      oldest.style.opacity = '0';
+      setTimeout(() => oldest.remove(), 300);
+    }
+
+    const win = document.createElement('div');
+    win.className = 'glass-window';
+
+    const header = document.createElement('div');
+    header.className = 'window-header';
+    header.innerHTML = `
+      <span class="header-title">${room.title.toUpperCase()}</span>
+      <span class="header-close-btn" title="Close Window">X</span>
+    `;
+
+    const body = document.createElement('div');
+    body.className = 'window-body';
+    
+    if (isTemporary) {
+      body.innerHTML = `<h2 style="color:var(--matrix-green); text-shadow:0 0 20px var(--matrix-green); border:1px solid var(--matrix-green); padding:20px; text-align:center;">[ INITIATING HANDOFF : ${room.title.toUpperCase()} ]</h2>`;
+    } else {
+      this.renderNodeContent(body, seed, room.z);
+    }
+
+    win.appendChild(header);
+    win.appendChild(body);
+    this.windowManager.appendChild(win);
+    
+    return win;
   }
 
   dispatchNodeChanged(room) {
@@ -204,46 +205,56 @@ class SpatialMatrix {
   // ─── Z-AXIS ELEVATOR (INTERACTIVE DEPTH) ────────────────────────────────────
 
   attachDelegatedListeners() {
-    this.canvas.addEventListener('click', (e) => {
+    this.windowManager.addEventListener('click', (e) => {
+      // 1. Handle Window Close
+      if (e.target.classList.contains('header-close-btn')) {
+        const win = e.target.closest('.glass-window');
+        if (win) {
+          win.style.transform = 'scale(0.9)';
+          win.style.opacity = '0';
+          setTimeout(() => win.remove(), 250);
+        }
+        return;
+      }
+
+      // 2. Handle Sub-Level Dive
       const target = e.target.closest('.depth-ascend, .depth-descend');
       if (!target) return;
       
       const delta = parseInt(target.getAttribute('data-delta'));
-      if (delta) this.changeFloor(delta);
+      if (delta) {
+        const winBody = e.target.closest('.window-body');
+        const headerTitle = e.target.closest('.glass-window').querySelector('.header-title');
+        this.changeFloor(delta, winBody, headerTitle);
+      }
     });
   }
 
-  async changeFloor(delta) {
+  async changeFloor(delta, windowBody, headerTitle) {
     const targetZ = this.currentZ + delta;
     const room = RoomMatrix.getRoom(this.currentSeed, targetZ);
     if (!room) return;
 
-    // Transition: scale up (dive in) or scale down (return)
-    const direction = delta > 0 ? 'ascend' : 'descend';
-    
-    // Phase 1: Dive out of current view
-    this.canvas.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease';
-    this.canvas.style.opacity = '0';
-    this.canvas.style.transform += delta < 0 ? ' scale(1.5)' : ' scale(0.5)';
-
-    await new Promise(r => setTimeout(r, 600));
-
-    // Phase 2: Swap content & render depth
     this.currentZ = targetZ;
     this.updateHUD(room);
-    
-    // Re-render centralized node
-    this.renderNodeContent(this.centerNode, this.currentSeed, this.currentZ);
+    if (headerTitle) headerTitle.textContent = room.title.toUpperCase();
 
-    // Position for "arrival"
-    this.centerNode.style.transition = 'none';
-    this.centerNode.style.transform = `scale(${delta < 0 ? 0.5 : 1.5})`;
+    // Visual dive within the specific window panel
+    windowBody.style.transition = 'opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    windowBody.style.opacity = '0';
+    windowBody.style.transform = `scale(${delta < 0 ? 1.2 : 0.8})`;
+
+    await new Promise(r => setTimeout(r, 400));
     
-    // Phase 3: Settle in
+    this.renderNodeContent(windowBody, this.currentSeed, this.currentZ);
+
+    windowBody.style.transition = 'none';
+    windowBody.style.transform = `scale(${delta < 0 ? 0.8 : 1.2})`;
+
     requestAnimationFrame(() => {
-      this.centerNode.style.transition = 'transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s ease';
-      this.centerNode.style.opacity = '1';
-      this.centerNode.style.transform = `scale(1.0)`;
+      windowBody.style.transition = 'opacity 0.4s ease, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1)';
+      windowBody.style.opacity = '1';
+      windowBody.style.transform = `scale(1.0)`;
     });
 
     this.dispatchNodeChanged(room);
