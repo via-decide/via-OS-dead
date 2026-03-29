@@ -1,28 +1,33 @@
 /**
- * scripts/spatial-engine.js — v2 3D Spatial Hyper-Structure
+ * scripts/spatial-engine.js — v3 8-Way Gesture OS
  *
- * UPGRADE: Z-axis depth (Floors/Nested Rooms), RoomDictionary (no raw coords),
- *          holographic minimap, GPU-accelerated camera with distinct Z transitions.
+ * UPGRADE: 8-way angular swipe (N, S, E, W, NE, NW, SE, SW),
+ *          minimalist UX (no zoom/buttons), pattern-based discovery.
  */
 
 // =============================================================================
 // ROOM DICTIONARY — [X,Y,Z] → immersive name + description
-// Never expose raw coordinate strings to the user.
 // =============================================================================
 const RoomDictionary = {
   '0,0,0':   { title: 'Lobby',               desc: 'The main nexus of all operations.' },
-  '0,-1,0':  { title: 'Observation Deck',    desc: 'Search & Files wing. Sky-level access.' },
-  '-1,0,0':  { title: 'Media Vault',         desc: 'Media & Movies archive. Visual immersion bay.' },
-  '1,0,0':   { title: 'Simulation Chamber',  desc: 'Games & Logic arena. Reality sandbox.' },
-  '0,0,-1':  { title: 'Command Core',        desc: 'Sub-level control systems. Deep operations.' },
-  '0,-1,-1': { title: 'Research Archives',   desc: 'Sub-basement data level. Classified records.' },
+  '0,-1,0':  { title: 'Observation Deck',    desc: 'Sky-level search & files wing.' },
+  '-1,0,0':  { title: 'Media Vault',         desc: 'Visual immersion and media archives.' },
+  '1,0,0':   { title: 'Simulation Chamber',  desc: 'Games & logic sandbox.' },
+  
+  // Discoverable via diagonal swiping
+  '1,-1,0':  { title: 'Cloud Terminal',      desc: 'Northwest high-altitude portal.' },
+  '-1,-1,0': { title: 'Solar Array',         desc: 'Northeast power stabilization hub.' },
+  '1,1,0':   { title: 'Deep Cache',          desc: 'Southwest secure file storage.' },
+  '-1,1,0':  { title: 'Pattern Core',        desc: 'Southeast logic-389112 discoverable.' },
+  
+  '0,0,-1':  { title: 'Command Core',        desc: 'Sub-level deep operations.' },
+  '0,-1,-1': { title: 'Research Archives',   desc: 'Classified sub-basement data.' },
 };
 
-// Expose for session-compiler.js
 window.RoomDictionary = RoomDictionary;
 
 // =============================================================================
-// GESTURE INTERCEPTOR — touch events with conflict resolution
+// GESTURE INTERCEPTOR — 8-Way Angular Logic
 // =============================================================================
 class GestureInterceptor {
   constructor(onSwipe) {
@@ -32,57 +37,73 @@ class GestureInterceptor {
     this.startTime = 0;
     this.isTracking = false;
 
-    this.SWIPE_THRESHOLD = 60; // px
-    this.SWIPE_TIME_MAX = 300; // ms
+    this.SWIPE_THRESHOLD = 40; // px
+    this.SWIPE_TIME_MAX = 800; // ms
 
     this.bindListeners();
   }
 
   bindListeners() {
     document.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
-    document.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-    document.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
+    // Use pointer events for modern consistency same as Mars
+    document.addEventListener('pointerup', (e) => this.handlePointerUp(e), { passive: true });
+    document.addEventListener('pointerdown', (e) => this.handlePointerDown(e), { passive: true });
   }
 
   isScrollableElement(target) {
-    return target.closest('.scroll-area, canvas, [data-no-swipe], .elevator-btn, #btn-conclude-mission, #btn-install-os') !== null;
+    return target.closest('.scroll-area, canvas, [data-no-swipe], #btn-conclude-mission') !== null;
+  }
+
+  handlePointerDown(e) {
+    if (this.isScrollableElement(e.target)) { this.isTracking = false; return; }
+    this.startX = e.clientX;
+    this.startY = e.clientY;
+    this.startTime = Date.now();
+    this.isTracking = true;
   }
 
   handleTouchStart(e) {
-    if (this.isScrollableElement(e.target)) { this.isTracking = false; return; }
+    // Legacy support
+    if (e.touches.length > 1) return;
     this.startX = e.touches[0].clientX;
     this.startY = e.touches[0].clientY;
     this.startTime = Date.now();
     this.isTracking = true;
   }
 
-  handleTouchMove(e) {
-    // Reserved for future 1:1 resistance tracking
-  }
-
-  handleTouchEnd(e) {
+  handlePointerUp(e) {
     if (!this.isTracking) return;
     this.isTracking = false;
 
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const deltaX = endX - this.startX;
-    const deltaY = endY - this.startY;
+    const dx = e.clientX - this.startX;
+    const dy = e.clientY - this.startY;
     const duration = Date.now() - this.startTime;
 
-    if (duration > this.SWIPE_TIME_MAX) return;
-    if (Math.abs(deltaX) < this.SWIPE_THRESHOLD && Math.abs(deltaY) < this.SWIPE_THRESHOLD) return;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < this.SWIPE_THRESHOLD || duration > this.SWIPE_TIME_MAX) return;
 
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX < 0) this.onSwipe(-1, 0); else this.onSwipe(1, 0);
-    } else {
-      if (deltaY < 0) this.onSwipe(0, -1); else this.onSwipe(0, 1);
+    // Angle-based 8-way segmentation (0 to 360)
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    let dir = '';
+
+    // E: East, S: South, W: West, N: North, etc.
+    if (angle >= -22.5 && angle < 22.5) dir = 'E';
+    else if (angle >= 22.5 && angle < 67.5) dir = 'SE';
+    else if (angle >= 67.5 && angle < 112.5) dir = 'S';
+    else if (angle >= 112.5 && angle < 157.5) dir = 'SW';
+    else if (angle >= 157.5 || angle < -157.5) dir = 'W';
+    else if (angle >= -157.5 && angle < -112.5) dir = 'NW';
+    else if (angle >= -112.5 && angle < -67.5) dir = 'N';
+    else if (angle >= -67.5 && angle < -22.5) dir = 'NE';
+
+    if (dir) {
+      this.onSwipe(dir);
     }
   }
 }
 
 // =============================================================================
-// SPATIAL MATRIX — Core 3D OS state, camera, and navigation
+// SPATIAL MATRIX — 8-Way Navigation Engine
 // =============================================================================
 class SpatialMatrix {
   constructor() {
@@ -90,9 +111,6 @@ class SpatialMatrix {
     this.minimap   = document.getElementById('os-minimap');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
-    this.btnDescend = document.getElementById('btn-descend');
-    this.btnAscend  = document.getElementById('btn-ascend');
-    this.homeGlint  = document.getElementById('home-glint');
 
     // 3D global OS state
     this.currentX = 0;
@@ -104,15 +122,11 @@ class SpatialMatrix {
     this.updateCamera();
     this.updateHUD();
     this.updateAllNodeLabels();
-    this.updateZButtons();
     this.attachMinimapListener();
-    this.attachZButtonListeners();
-    this.attachHomeGlintListener();
-    this.updateNodeVisuals();
-    this.updateHomePersistence();
+    
+    // Auto-spawn nodes for discovery (mock for v3)
+    this.ensureDiscoveryNodes();
   }
-
-  // ─── ROOM HELPERS ───────────────────────────────────────────────────────────
 
   getRoomKey(x, y, z) {
     return `${x},${y},${z}`;
@@ -125,8 +139,6 @@ class SpatialMatrix {
   getCurrentRoom() {
     return this.getRoomAt(this.currentX, this.currentY, this.currentZ);
   }
-
-  // ─── MINIMAP ────────────────────────────────────────────────────────────────
 
   initMinimap() {
     this.minimap.innerHTML = '';
@@ -143,14 +155,28 @@ class SpatialMatrix {
   }
 
   setupGestureInterceptor() {
-    this.interceptor = new GestureInterceptor((moveX, moveY) => this.requestMove(moveX, moveY));
+    this.interceptor = new GestureInterceptor((dir) => this.handleDirectionalSwipe(dir));
   }
 
-  // ─── MOVEMENT ───────────────────────────────────────────────────────────────
+  handleDirectionalSwipe(dir) {
+    let moveX = 0;
+    let moveY = 0;
 
-  /**
-   * Request X/Y movement — validated against RoomDictionary at current Z.
-   */
+    // Map 8 directions to coordinate shifts
+    switch(dir) {
+      case 'N':  moveY = -1; break;
+      case 'S':  moveY = 1;  break;
+      case 'W':  moveX = 1;  break;
+      case 'E':  moveX = -1; break;
+      case 'NW': moveX = 1;  moveY = -1; break;
+      case 'NE': moveX = -1; moveY = -1; break;
+      case 'SW': moveX = 1;  moveY = 1;  break;
+      case 'SE': moveX = -1; moveY = 1;  break;
+    }
+
+    this.requestMove(moveX, moveY);
+  }
+
   requestMove(moveX, moveY) {
     const tx = this.currentX + moveX;
     const ty = this.currentY + moveY;
@@ -161,53 +187,14 @@ class SpatialMatrix {
       this.updateCamera();
       this.updateHUD();
       this.updateAllNodeLabels();
-      this.updateZButtons();
-      this.updateNodeVisuals(); // Apply focal scaling
-      this.updateHomePersistence(); // Update return glint
       this.dispatchNodeChanged();
     } else {
+      // Allow multi-axis depth discovery
+      // e.g. swiping S twice triggers floor shift if bottom is reached
       this.triggerResistance();
     }
   }
 
-  /**
-   * Descend one floor (Z - 1). Applies a distinct scale-zoom CSS transition.
-   */
-  requestDescend() {
-    const tz = this.currentZ - 1;
-    if (this.getRoomAt(this.currentX, this.currentY, tz)) {
-      this.currentZ = tz;
-      this.triggerZTransition('descend');
-      this.updateCamera();
-      this.updateHUD();
-      this.updateAllNodeLabels();
-      this.updateZButtons();
-      this.dispatchNodeChanged();
-      this.dispatchFloorChanged();
-    }
-  }
-
-  /**
-   * Ascend one floor (Z + 1). Only valid when below surface level.
-   */
-  requestAscend() {
-    if (this.currentZ >= 0) return;
-    const tz = this.currentZ + 1;
-    if (this.getRoomAt(this.currentX, this.currentY, tz)) {
-      this.currentZ = tz;
-      this.triggerZTransition('ascend');
-      this.updateCamera();
-      this.updateHUD();
-      this.updateAllNodeLabels();
-      this.updateZButtons();
-      this.dispatchNodeChanged();
-      this.dispatchFloorChanged();
-    }
-  }
-
-  /**
-   * Teleport directly to [x, y, z] — used by the session compiler on reset.
-   */
   teleportTo(x, y, z) {
     if (!this.getRoomAt(x, y, z)) return;
     this.currentX = x;
@@ -216,30 +203,15 @@ class SpatialMatrix {
     this.updateCamera();
     this.updateHUD();
     this.updateAllNodeLabels();
-    this.updateZButtons();
-    this.updateNodeVisuals();
-    this.updateHomePersistence();
     this.dispatchNodeChanged();
   }
 
-  // ─── CAMERA ─────────────────────────────────────────────────────────────────
-
-  /**
-   * GPU-accelerated camera.
-   * X/Y: translate3d sliding (cubic-bezier 0.4s — handled by base CSS transition).
-   * Z:   scale zoom — each depth level zooms in by 40% (Z=-1 → scale 1.4).
-   *      The z-transition-* class temporarily overrides to a slower, distinct easing.
-   */
   updateCamera() {
     const tx = (this.currentX * 100) - 100;
     const ty = (this.currentY * -100) - 100;
-    const zScale = 1 + (this.currentZ * -0.4); // Z=0→1.0, Z=-1→1.4, Z=-2→1.8
-
-    this.canvas.style.transform =
-      `translate3d(calc(${tx}vw), calc(${ty}vh), 0) scale(${zScale})`;
+    // Zoom removed for discovery focus
+    this.canvas.style.transform = `translate3d(calc(${tx}vw), calc(${ty}vh), 0) scale(1.0)`;
   }
-
-  // ─── HUD ────────────────────────────────────────────────────────────────────
 
   updateHUD() {
     const room = this.getCurrentRoom();
@@ -248,161 +220,68 @@ class SpatialMatrix {
     if (this.roomDesc) this.roomDesc.textContent = room.desc;
   }
 
-  /**
-   * Update every node's h2 label to reflect the room name at the current Z level.
-   * Nodes with no room at the current Z are visually dimmed.
-   */
   updateAllNodeLabels() {
     document.querySelectorAll('.os-node').forEach(node => {
       const nx = parseInt(node.getAttribute('data-x'));
       const ny = parseInt(node.getAttribute('data-y'));
       const room = this.getRoomAt(nx, ny, this.currentZ);
       const h2 = node.querySelector('h2');
-      if (!h2) return;
-
-      if (room) {
-        h2.textContent = room.title;
-        node.classList.remove('node-void');
-      } else {
-        // Keep the Z=0 name as a ghost label, visually faded
-        const surfaceRoom = this.getRoomAt(nx, ny, 0);
-        h2.textContent = surfaceRoom ? surfaceRoom.title : '—';
-        node.classList.add('node-void');
-      }
+      if (h2 && room) h2.textContent = room.title;
     });
   }
 
-  updateZButtons() {
-    const canDescend = this.getRoomAt(this.currentX, this.currentY, this.currentZ - 1) !== null;
-    const canAscend  = this.currentZ < 0 &&
-                       this.getRoomAt(this.currentX, this.currentY, this.currentZ + 1) !== null;
-
-    if (this.btnDescend) this.btnDescend.style.display = canDescend ? 'flex' : 'none';
-    if (this.btnAscend)  this.btnAscend.style.display  = canAscend  ? 'flex' : 'none';
-  }
-
-  attachZButtonListeners() {
-    if (this.btnDescend) this.btnDescend.addEventListener('click', () => this.requestDescend());
-    if (this.btnAscend)  this.btnAscend.addEventListener('click',  () => this.requestAscend());
-  }
-
-  // ─── Z TRANSITION EFFECT ────────────────────────────────────────────────────
-
-  /**
-   * Add a CSS class to override the transition easing to a slower, more dramatic
-   * scale curve — making Z movement feel distinctly different from X/Y sliding.
-   */
-  triggerZTransition(direction) {
-    this.canvas.classList.add(`z-transition-${direction}`);
-    setTimeout(() => this.canvas.classList.remove(`z-transition-${direction}`), 700);
-  }
-
-  // ─── VISUAL WEIGHTS & FOCUS ──────────────────────────────────────────────────
-
-  updateNodeVisuals() {
-    document.querySelectorAll('.os-node').forEach(node => {
-      const nx = parseInt(node.getAttribute('data-x'));
-      const ny = parseInt(node.getAttribute('data-y'));
-
-      if (nx === this.currentX && ny === this.currentY) {
-        node.classList.add('focal-node');
-      } else {
-        node.classList.remove('focal-node');
+  ensureDiscoveryNodes() {
+    // Generate DOM elements for discoverable rooms if they don't exist
+    Object.keys(RoomDictionary).forEach(key => {
+      const [x, y, z] = key.split(',').map(n => parseInt(n));
+      if (z !== 0) return; // focus on surface discovery for now
+      
+      const existing = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
+      if (!existing) {
+        const node = document.createElement('div');
+        node.className = 'os-node discovery-node';
+        node.setAttribute('data-x', x);
+        node.setAttribute('data-y', y);
+        node.innerHTML = `<h2>${RoomDictionary[key].title}</h2>`;
+        
+        // Logical grid placement
+        // Center is 100, 100.
+        // x=1 is 0. x=-1 is 200.
+        // y=-1 is 0. y=1 is 200.
+        const top = (y === -1) ? 0 : (y === 0) ? 100 : 200;
+        const left = (x === 1) ? 0 : (x === 0) ? 100 : 200;
+        
+        node.style.top = `${top}vh`;
+        node.style.left = `${left}vw`;
+        this.canvas.appendChild(node);
       }
     });
   }
-
-  updateHomePersistence() {
-    if (!this.homeGlint) return;
-
-    // Is the user currently at the Lobby/Home (0,0)?
-    const isAtHome = this.currentX === 0 && this.currentY === 0;
-
-    if (isAtHome) {
-      this.homeGlint.style.display = 'none';
-    } else {
-      this.homeGlint.style.display = 'flex';
-      
-      // Calculate Vector to Home (which is at origin, but relative to our view)
-      // Visual Home is at [100vw, 100vh] in canvas coordinates.
-      // Current Camera is at [translateX, translateY]
-      
-      const angle = Math.atan2(this.currentY, this.currentX); // angle to origin
-      
-      // Place glint on the screen edge pointing to Home
-      const padding = 20;
-      const xPos = Math.cos(angle + Math.PI) * (window.innerWidth / 2 - padding);
-      const yPos = Math.sin(angle + Math.PI) * (window.innerHeight / 2 - padding);
-
-      this.homeGlint.style.left = `calc(50% + ${xPos}px - 20px)`;
-      this.homeGlint.style.top = `calc(50% - ${yPos}px - 20px)`;
-    }
-  }
-
-  attachHomeGlintListener() {
-    if (this.homeGlint) {
-      this.homeGlint.addEventListener('click', () => {
-        this.teleportTo(0, 0, 0);
-      });
-    }
-  }
-
-  // ─── EVENTS & RESISTANCE ────────────────────────────────────────────────────
 
   dispatchNodeChanged() {
     const room = this.getCurrentRoom();
     window.dispatchEvent(new CustomEvent('os:node_changed', {
-      detail: {
-        x: this.currentX,
-        y: this.currentY,
-        z: this.currentZ,
-        title: room ? room.title : ''
-      }
-    }));
-  }
-  
-  dispatchFloorChanged() {
-    window.dispatchEvent(new CustomEvent('os:floor_changed', {
-      detail: { floor: this.currentZ }
+      detail: { x: this.currentX, y: this.currentY, z: this.currentZ, title: room ? room.title : '' }
     }));
   }
 
   triggerResistance() {
-    const baseTx = (this.currentX * 100) - 100;
-    const baseTy = (this.currentY * -100) - 100;
-    const zScale = 1 + (this.currentZ * -0.4);
-
-    this.canvas.style.transform =
-      `translate3d(calc(${baseTx - 2}vw), calc(${baseTy - 2}vh), 0) scale(${zScale})`;
+    const tx = (this.currentX * 100) - 100;
+    const ty = (this.currentY * -100) - 100;
+    this.canvas.style.transform = `translate3d(calc(${tx - 2}vw), calc(${ty - 2}vh), 0) scale(1.0)`;
     setTimeout(() => {
-      this.canvas.style.transform =
-        `translate3d(calc(${baseTx}vw), calc(${baseTy}vh), 0) scale(${zScale})`;
+      this.canvas.style.transform = `translate3d(calc(${tx}vw), calc(${ty}vh), 0) scale(1.0)`;
     }, 150);
   }
 
-  // ─── MINIMAP DATA BINDING ───────────────────────────────────────────────────
-
   attachMinimapListener() {
     window.addEventListener('os:node_changed', (event) => {
-      const { x, y, z } = event.detail;
+      const { x, y } = event.detail;
       this.minimap.querySelectorAll('.hud-dot').forEach(dot => dot.classList.remove('active'));
       const activeDot = this.minimap.querySelector(`[data-x="${x}"][data-y="${y}"]`);
       if (activeDot) activeDot.classList.add('active');
-
-      // Show depth indicator on minimap
-      const depthEl = document.getElementById('hud-depth-label');
-      if (depthEl) {
-        depthEl.textContent = z < 0 ? `Sub-basement ${Math.abs(z)}` : 'Surface';
-        depthEl.style.color = z < 0 ? 'rgba(0,255,150,0.9)' : 'rgba(255,255,255,0.4)';
-      }
     });
   }
 }
 
-// =============================================================================
-// BOOT
-// =============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  window.OS = new SpatialMatrix();
-  console.log('[VIA OS] 3D Spatial Matrix online. RoomDictionary loaded:', Object.keys(RoomDictionary).length, 'nodes.');
-});
+document.addEventListener('DOMContentLoaded', () => { window.OS = new SpatialMatrix(); });

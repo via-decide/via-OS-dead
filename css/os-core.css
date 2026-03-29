@@ -74,24 +74,7 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-  transition: opacity 0.4s ease, filter 0.4s ease, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-  will-change: transform, opacity;
-}
-
-/* Focal scaling when the user is positioned at this node */
-.os-node.focal-node h2 {
-  transform: scale(1.35);
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 50px rgba(0, 255, 150, 0.3);
-  border: 1px solid rgba(0, 255, 150, 0.4);
-  color: #ffffff;
-}
-
-/* Void node — no room exists at this X/Y for the current Z level */
-.os-node.node-void h2 {
-  opacity: 0.15;
-  filter: blur(3px);
-}
+/* Node grid positions within the 300vw × 300vh canvas */
 
 /* Node grid positions within the 300vw × 300vh canvas */
 #node-center { top: 100vh; left: 100vw; }
@@ -198,67 +181,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════
-   HOME PERSISTENCE — THE GLINT
-   ════════════════════════════════════════════════════════════ */
-#home-glint {
-  position: fixed;
-  width: 40px;
-  height: 40px;
-  background: rgba(0, 255, 150, 0.2);
-  border: 2px solid #00ff96;
-  border-radius: 50%;
-  z-index: 2000;
-  pointer-events: auto;
-  cursor: pointer;
-  display: none; /* hidden when Lobby is in focus */
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(0, 255, 150, 0.5);
-  transition: opacity 0.3s ease, transform 0.1s ease;
-}
-#home-glint::after {
-  content: 'H';
-  font-weight: 900;
-  color: #00ff96;
-  font-size: 14px;
-}
-#home-glint:active {
-  transform: scale(0.9);
-}
-
-.elevator-btn {
-  display: none; /* shown/hidden by spatial-engine.js */
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  padding: 11px 18px;
-  background: rgba(0, 255, 150, 0.10);
-  border: 1px solid rgba(0, 255, 150, 0.35);
-  color: rgba(0, 255, 150, 1);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  border-radius: 100px;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 0 18px rgba(0, 255, 150, 0.15);
-  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.elevator-btn:hover {
-  background: rgba(0, 255, 150, 0.18);
-  box-shadow: 0 0 28px rgba(0, 255, 150, 0.3);
-}
-
-.elevator-btn:active {
-  transform: scale(0.95);
-}
-
-/* ════════════════════════════════════════════════════════════
-   HUD — CONCLUDE MISSION (top right)
+   HUD — CONCLUDE (top right)
    ════════════════════════════════════════════════════════════ */
 #btn-conclude-mission {
   position: fixed;
