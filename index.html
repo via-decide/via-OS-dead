@@ -391,7 +391,11 @@
           <span class="window-close">✕</span>
         </div>
         <div class="window-content">
-          <iframe src="${url}" style="width:100%; height:100%; border:none; background:var(--bg);"></iframe>
+          <iframe
+            src="${url}"
+            style="width:100%; height:100%; border:none; background:var(--bg);"
+            onerror="this.outerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;color:#444;font-size:11px;font-family:var(--font-mono);\\'>[ TOOL NOT YET DEPLOYED ]<span style=\\'color:#333;font-size:9px;\\'>${url}</span></div>'"
+          ></iframe>
         </div>
       `;
       
@@ -452,7 +456,7 @@
     minimap.addEventListener('touchmove', e => { e.preventDefault(); if (isTracing) handleTouch(e); });
     minimap.addEventListener('touchend', e => { e.preventDefault(); isTracing = false; drawSVG(); processPattern(); });
 
-    // Mouse aliases — Desktop + Chrome DevTools mobile emulator support
+    // Mouse aliases — lets Desktop and Chrome DevTools emulator work without a real touch device
     function handleMouse(e) {
       const mapRect = minimap.getBoundingClientRect();
       const x = e.clientX - mapRect.left;
@@ -464,17 +468,18 @@
         if (path.length === 0 || path[path.length - 1] !== idx) {
           path.push(idx);
           document.getElementById(`dot-${idx}`).classList.add('active');
-          if (navigator.vibrate) navigator.vibrate(15);
+          if(navigator.vibrate) navigator.vibrate(15);
         }
       }
+      // Reuse drawSVG with local coords
       let pts = path.map(i => { let c = getDotCenter(i); return `${c.x},${c.y}`; });
-      if (isTracing) pts.push(`${x},${y}`);
+      if(isTracing) pts.push(`${x},${y}`);
       svgLine.setAttribute('points', pts.join(' '));
     }
     minimap.addEventListener('mousedown', e => { isTracing = true; path = []; document.querySelectorAll('.dot').forEach(d => d.classList.remove('active')); handleMouse(e); });
     minimap.addEventListener('mousemove', e => { if (isTracing) handleMouse(e); });
-    minimap.addEventListener('mouseup', () => { isTracing = false; drawSVG(); processPattern(); });
-    minimap.addEventListener('mouseleave', () => { if (isTracing) { isTracing = false; drawSVG(); processPattern(); } });
+    minimap.addEventListener('mouseup', e => { isTracing = false; drawSVG(); processPattern(); });
+    minimap.addEventListener('mouseleave', e => { if (isTracing) { isTracing = false; drawSVG(); processPattern(); } });
 
     /* =========================================================
        6. THE STRICT WATERFALL ROUTING ENGINE
