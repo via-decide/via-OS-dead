@@ -141,7 +141,7 @@
   <!-- ══════════════════════════════════════════════════════
        HUD — Conclude Session (top right)
        ══════════════════════════════════════════════════════ -->
-  <button id="btn-conclude-mission" title="Compile mission into PDF souvenir">Conclude</button>
+  <button id="btn-conclude-session" class="btn-glitch" title="Compile mission into PDF souvenir">Conclude Mission</button>
 
   <!-- ══════════════════════════════════════════════════════
        SPATIAL MATRIX — 3D Canvas
@@ -185,7 +185,11 @@
   <!-- ══════════════════════════════════════════════════════
        HUD — Z-Axis Elevator Buttons (right side)
        ══════════════════════════════════════════════════════ -->
-  <!-- HUD — Z-Axis Elevator removed for discovery mode -->
+  <!-- HUD — Z-Axis Elevator System -->
+  <div id="hud-elevator">
+    <button id="btn-ascend">Return Up</button>
+    <button id="btn-descend">Descend Deeper</button>
+  </div>
 
   <!-- ══════════════════════════════════════════════════════
        PDF Render Zone — hidden until session compilation

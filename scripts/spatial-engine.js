@@ -9,19 +9,18 @@
 // ROOM DICTIONARY — [X,Y,Z] → immersive name + description
 // =============================================================================
 const RoomDictionary = {
-  '0,0,0':   { title: 'Lobby',               desc: 'The main nexus of all operations.' },
-  '0,-1,0':  { title: 'Observation Deck',    desc: 'Sky-level search & files wing.' },
-  '-1,0,0':  { title: 'Media Vault',         desc: 'Visual immersion and media archives.' },
-  '1,0,0':   { title: 'Simulation Chamber',  desc: 'Games & logic sandbox.' },
+  '0,0,0':   { title: 'Galaxy Center',      desc: 'Main Nexus' },
+  '0,-1,0':  { title: 'Research Wing',      desc: 'Data Ops' },
+  '0,-1,-1': { title: 'Research Archives',  desc: 'Deep Storage' },
   
   // Discoverable via diagonal swiping
-  '1,-1,0':  { title: 'Cloud Terminal',      desc: 'Northwest high-altitude portal.' },
-  '-1,-1,0': { title: 'Solar Array',         desc: 'Northeast power stabilization hub.' },
-  '1,1,0':   { title: 'Deep Cache',          desc: 'Southwest secure file storage.' },
-  '-1,1,0':  { title: 'Pattern Core',        desc: 'Southeast logic-389112 discoverable.' },
-  
-  '0,0,-1':  { title: 'Command Core',        desc: 'Sub-level deep operations.' },
-  '0,-1,-1': { title: 'Research Archives',   desc: 'Classified sub-basement data.' },
+  '1,0,0':   { title: 'Simulation Chamber', desc: 'Games & logic sandbox.' },
+  '-1,0,0':  { title: 'Media Vault',        desc: 'Visual immersion and media archives.' },
+  '1,-1,0':  { title: 'Cloud Terminal',     desc: 'Northwest high-altitude portal.' },
+  '-1,-1,0': { title: 'Solar Array',        desc: 'Northeast power stabilization hub.' },
+  '1,1,0':   { title: 'Deep Cache',         desc: 'Southwest secure file storage.' },
+  '-1,1,0':  { title: 'Pattern Core',       desc: 'Southeast logic-389112 discoverable.' },
+  '0,0,-1':  { title: 'Command Core',       desc: 'Sub-level deep operations.' },
 };
 
 window.RoomDictionary = RoomDictionary;
@@ -111,6 +110,8 @@ class SpatialMatrix {
     this.minimap   = document.getElementById('os-minimap');
     this.roomName  = document.getElementById('hud-room-name');
     this.roomDesc  = document.getElementById('hud-room-desc');
+    this.btnDescend = document.getElementById('btn-descend');
+    this.btnAscend  = document.getElementById('btn-ascend');
 
     // 3D global OS state
     this.currentX = 0;
@@ -123,6 +124,8 @@ class SpatialMatrix {
     this.updateHUD();
     this.updateAllNodeLabels();
     this.attachMinimapListener();
+    this.attachZButtonListeners();
+    this.checkZAxis();
     
     // Auto-spawn nodes for discovery (mock for v3)
     this.ensureDiscoveryNodes();
@@ -187,6 +190,7 @@ class SpatialMatrix {
       this.updateCamera();
       this.updateHUD();
       this.updateAllNodeLabels();
+      this.checkZAxis(); // Update elevator buttons
       this.dispatchNodeChanged();
     } else {
       // Allow multi-axis depth discovery
@@ -261,8 +265,69 @@ class SpatialMatrix {
   dispatchNodeChanged() {
     const room = this.getCurrentRoom();
     window.dispatchEvent(new CustomEvent('os:node_changed', {
-      detail: { x: this.currentX, y: this.currentY, z: this.currentZ, title: room ? room.title : '' }
+      detail: { 
+        x: this.currentX, 
+        y: this.currentY, 
+        z: this.currentZ, 
+        title: room ? room.title : 'Uncharted Sector' 
+      }
     }));
+  }
+
+  // ─── Z-AXIS ELEVATOR ────────────────────────────────────────────────────────
+
+  checkZAxis() {
+    if (!this.btnAscend || !this.btnDescend) return;
+
+    const hasUp   = this.getRoomAt(this.currentX, this.currentY, this.currentZ + 1);
+    const hasDown = this.getRoomAt(this.currentX, this.currentY, this.currentZ - 1);
+
+    this.btnAscend.style.display  = hasUp   ? 'flex' : 'none';
+    this.btnDescend.style.display = hasDown ? 'flex' : 'none';
+  }
+
+  attachZButtonListeners() {
+    if (this.btnAscend) {
+      this.btnAscend.addEventListener('click', () => this.changeFloor(1));
+    }
+    if (this.btnDescend) {
+      this.btnDescend.addEventListener('click', () => this.changeFloor(-1));
+    }
+  }
+
+  async changeFloor(delta) {
+    const targetZ = this.currentZ + delta;
+    if (!this.getRoomAt(this.currentX, this.currentY, targetZ)) return;
+
+    // Transition: scale up (dive in) or scale down (return)
+    const direction = delta > 0 ? 'ascend' : 'descend';
+    
+    // Phase 1: Dive out of current view
+    this.canvas.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease';
+    this.canvas.style.opacity = '0';
+    this.canvas.style.transform += delta < 0 ? ' scale(1.5)' : ' scale(0.5)';
+
+    await new Promise(r => setTimeout(r, 600));
+
+    // Phase 2: Swap content
+    this.currentZ = targetZ;
+    this.updateHUD();
+    this.updateAllNodeLabels();
+    this.checkZAxis();
+    
+    // Position for "arrival"
+    this.canvas.style.transition = 'none';
+    this.canvas.style.transform = `translate3d(calc(${(this.currentX * 100) - 100}vw), calc(${(this.currentY * -100) - 100}vh), 0) ${delta < 0 ? 'scale(0.5)' : 'scale(1.5)'}`;
+    
+    // Phase 3: Settle in
+    requestAnimationFrame(() => {
+      this.canvas.style.transition = 'transform 0.6s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.6s ease';
+      this.canvas.style.opacity = '1';
+      this.canvas.style.transform = `translate3d(calc(${(this.currentX * 100) - 100}vw), calc(${(this.currentY * -100) - 100}vh), 0) scale(1.0)`;
+    });
+
+    this.dispatchNodeChanged();
+    window.dispatchEvent(new CustomEvent('os:floor_changed', { detail: { z: this.currentZ } }));
   }
 
   triggerResistance() {

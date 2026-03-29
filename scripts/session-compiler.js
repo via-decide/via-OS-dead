@@ -21,9 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('os:node_changed', (e) => {
   const { title, x, y, z } = e.detail;
   sessionLog.push({
-    title: title || `Node [${x},${y},${z}]`,
-    timestamp: new Date().toLocaleTimeString(),
-    coords: `${x},${y},${z}`
+    room: title || "Uncharted",
+    time: new Date().toLocaleTimeString()
   });
 });
 
@@ -40,7 +39,7 @@ window.addEventListener('os:floor_changed', (e) => {
 // ─── CONCLUDE BUTTON ────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  const concludeBtn = document.getElementById('btn-conclude-mission');
+  const concludeBtn = document.getElementById('btn-conclude-session');
   if (concludeBtn) {
     concludeBtn.addEventListener('click', () => compileAndPrint());
   }
@@ -70,7 +69,7 @@ function compileAndPrint() {
     <div class="pdf-page">
       <div class="pdf-header">
         <div class="pdf-logo" style="color: #00ff96;">VIA OS</div>
-        <h1 style="color: #00ff96;">Mission Report</h1>
+        <h1 style="color: #00ff96;">Classified Session Report</h1>
         <p class="pdf-date" style="color: rgba(255,255,255,0.5);">${dateStr} &bull; MISSION CONCLUDED AT ${timeStr}</p>
         <hr style="border-color: rgba(255,255,255,0.2);">
       </div>
@@ -99,9 +98,8 @@ function compileAndPrint() {
     }
 
     sessionLog = [{
-      title: 'Main Room',
-      timestamp: new Date().toLocaleTimeString(),
-      coords: '0,0,0'
+      room: 'Galaxy Center',
+      time: new Date().toLocaleTimeString()
     }];
   };
 

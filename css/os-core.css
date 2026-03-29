@@ -379,27 +379,24 @@ body {
    PRINT MEDIA — High Contrast Souvenir Mode
    ════════════════════════════════════════════════════════════ */
 @media print {
-  body > *:not(#pdf-render-zone) {
-    display: none !important;
-  }
+  body * { display: none !important; }
 
   #pdf-render-zone {
     display: block !important;
     position: static !important;
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     overflow: visible !important;
-    padding: 0 !important;
-    background: #020205 !important;
-    color: #ffffff !important;
+    padding: 40px !important;
+    background: white !important;
+    color: black !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .pdf-page {
     max-width: 100%;
-    background: #020205;
-    padding: 40px;
+    background: white;
   }
 
   .traversal-log li {
