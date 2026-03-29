@@ -117,6 +117,13 @@
   </div>
 
   <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(() => {
+        console.log('[VIA OS] Service Worker Registered');
+      });
+    }
+
     // Verify Standalone Execution — remove trap if already installed
     (function checkStandalone() {
       const isStandalone =
@@ -125,7 +132,7 @@
         document.referrer.includes('android-app://');
 
       const trap = document.getElementById('install-trap');
-      if (isStandalone) {
+      if (isStandalone && trap) {
         trap.remove();
       }
 
