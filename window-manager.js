@@ -1,99 +1,99 @@
-/**
- * Copyright 2026 ViaDecide
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/**
- * scripts/window-manager.js
- * Manages the glass-morphic split-screen panel ecosystem.
- */
+// window-manager.js
+// Via-OS Window Manager
 
 class WindowManager {
   constructor() {
-    this.stack = document.getElementById('window-manager');
-    this.maxWindows = 2;
-    this.attachListeners();
+    this.stack = document.getElementById("window-manager");
+    this.windows = {};
+    this.zIndex = 100;
+
+    if (!this.stack) {
+      console.error("window-manager container missing in HTML");
+      return;
+    }
   }
 
-  attachListeners() {
-    this.stack.addEventListener('click', (e) => {
-      // 1. Handle Window Close
-      if (e.target.classList.contains('header-close-btn')) {
-        const win = e.target.closest('.glass-window');
-        if (win) this.closeWindow(win);
-        return;
-      }
+  openTool(zoneId, toolId) {
+    const id = `${zoneId}-${toolId}`;
 
-      // 2. Handle Ecosystem Tool Launch
-      const toolBtn = e.target.closest('.tool-node');
-      if (toolBtn) {
-        const zoneId = toolBtn.dataset.zone;
-        const toolId = toolBtn.dataset.tool;
-        const toolName = toolBtn.textContent.replace(/[\[\]]/g, '').trim();
-        
-        const toolUrl = `../decide.engine-tools/tools/${zoneId}/${toolId}/index.html`;
-        const toolWin = this.spawnWindow({ title: toolName, z: 0 }, `tool:${toolId}`);
-        const body = toolWin.querySelector('.window-body');
-        body.innerHTML = `<iframe src="${toolUrl}" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
-        return;
-      }
-
-      // 3. Handle Macro Navigation
-      const macroBtn = e.target.closest('.macro-node');
-      if (macroBtn) {
-        const zid = macroBtn.dataset.zoneId;
-        window.dispatchEvent(new CustomEvent('os:macro_nav', { detail: { zoneId: zid } }));
-      }
-    });
-  }
-
-  spawnWindow(room, seed, isTemporary = false) {
-    if (!isTemporary && this.stack.children.length >= this.maxWindows) {
-      const oldest = this.stack.firstElementChild;
-      this.closeWindow(oldest);
+    if (this.windows[id]) {
+      this.focusWindow(id);
+      return;
     }
 
-    const win = document.createElement('div');
-    win.className = 'glass-window';
+    const toolUrl = `/decide.engine-tools/tools/${zoneId}/${toolId}/index.html`;
 
-    const header = document.createElement('div');
-    header.className = 'window-header';
-    header.innerHTML = `
-      <span class="header-title">${room.title.toUpperCase()}</span>
-      <span class="header-close-btn" title="Close Window">X</span>
-    `;
+    const win = document.createElement("div");
+    win.className = "os-window";
+    win.style.zIndex = ++this.zIndex;
 
-    const body = document.createElement('div');
-    body.className = 'window-body';
-    
-    if (isTemporary) {
-      body.innerHTML = `<h2 style="color:var(--matrix-green); text-shadow:0 0 20px var(--matrix-green); border:1px solid var(--matrix-green); padding:20px; text-align:center;">[ INITIATING HANDOFF : ${room.title.toUpperCase()} ]</h2>`;
-    } else {
-      window.dispatchEvent(new CustomEvent('os:render_node', { detail: { node: body, seed, z: room.z } }));
-    }
+    // header
+    const header = document.createElement("div");
+    header.className = "window-header";
+
+    const title = document.createElement("span");
+    title.textContent = `${toolId}`;
+
+    const close = document.createElement("button");
+    close.textContent = "✕";
+
+    close.onclick = () => {
+      win.remove();
+      delete this.windows[id];
+    };
+
+    header.appendChild(title);
+    header.appendChild(close);
+
+    // iframe content
+    const frame = document.createElement("iframe");
+    frame.src = toolUrl;
+    frame.className = "window-frame";
+
+    // sandbox security
+    frame.setAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-forms allow-popups"
+    );
 
     win.appendChild(header);
-    win.appendChild(body);
+    win.appendChild(frame);
+
     this.stack.appendChild(win);
-    
-    return win;
+
+    this.windows[id] = win;
+
+    this.makeDraggable(win, header);
   }
 
-  closeWindow(win) {
-    win.style.transform = 'scale(0.9)';
-    win.style.opacity = '0';
-    setTimeout(() => win.remove(), 300);
+  focusWindow(id) {
+    const win = this.windows[id];
+    if (!win) return;
+
+    win.style.zIndex = ++this.zIndex;
+  }
+
+  makeDraggable(win, header) {
+    let dragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    header.addEventListener("mousedown", (e) => {
+      dragging = true;
+      offsetX = e.clientX - win.offsetLeft;
+      offsetY = e.clientY - win.offsetTop;
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+
+      win.style.left = e.clientX - offsetX + "px";
+      win.style.top = e.clientY - offsetY + "px";
+    });
+
+    document.addEventListener("mouseup", () => {
+      dragging = false;
+    });
   }
 }
 
