@@ -17,7 +17,9 @@ this.focus(id)
 return
 }
 
-const url="/decide.engine-tools/tools/"+zone+"/"+tool+"/index.html"
+/* IMPORTANT FIX — RELATIVE PATH */
+
+const url="./decide.engine-tools/tools/"+zone+"/"+tool+"/index.html"
 
 const win=document.createElement("div")
 win.className="os-window"
