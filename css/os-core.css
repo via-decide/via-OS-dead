@@ -219,9 +219,9 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════
-   HUD — CONCLUDE SESSION (top right)
+   HUD — CONCLUDE MISSION (top right)
    ════════════════════════════════════════════════════════════ */
-#btn-conclude-session {
+#btn-conclude-mission {
   position: fixed;
   top: 20px;
   right: 16px;
@@ -243,11 +243,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-#btn-conclude-session:hover {
+#btn-conclude-mission:hover {
   background: rgba(255, 90, 70, 0.22);
+  box-shadow: 0 0 20px rgba(255, 90, 70, 0.3);
 }
 
-#btn-conclude-session:active {
+#btn-conclude-mission:active {
   transform: scale(0.95);
 }
 
@@ -313,14 +314,14 @@ body {
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
-  color: #111111;
+  background: #020205; /* Cyberpunk Mission Report */
+  color: #ffffff;
   z-index: 999999;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 48px 40px;
+  padding: 60px 40px;
   box-sizing: border-box;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: 'JetBrains Mono', 'Sora', monospace;
 }
 
 .pdf-page {
@@ -413,7 +414,7 @@ body {
 }
 
 /* ════════════════════════════════════════════════════════════
-   PRINT MEDIA — hide the OS UI, show only the PDF zone
+   PRINT MEDIA — High Contrast Souvenir Mode
    ════════════════════════════════════════════════════════════ */
 @media print {
   body > *:not(#pdf-render-zone) {
@@ -426,16 +427,25 @@ body {
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
-    padding: 20px !important;
-    background: white !important;
-    color: black !important;
+    padding: 0 !important;
+    background: #020205 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .pdf-page {
     max-width: 100%;
+    background: #020205;
+    padding: 40px;
   }
 
   .traversal-log li {
     page-break-inside: avoid;
+    border-color: rgba(255,255,255,0.1);
+    color: #ffffff !important;
   }
+
+  .pdf-logo, .pdf-page h1 { color: #00ff96 !important; }
+  .pdf-date, .pdf-subtitle { color: rgba(255,255,255,0.5) !important; }
 }
