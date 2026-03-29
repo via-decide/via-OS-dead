@@ -81,6 +81,45 @@ class SpatialMatrix {
 
   async handleWarpGate(seed) {
     this.currentSeed = seed;
+
+    // ─── 1. INTERCEPT: Glyph Launcher Deep Links ───
+    const glyphIntent = window.GlyphRegistry ? window.GlyphRegistry[seed] : null;
+
+    if (glyphIntent) {
+      // Warp out visually to hide the OS canvas
+      this.centerNode.classList.add('warp-transition', 'warp-out');
+      await new Promise(r => setTimeout(r, 400));
+      
+      // Temporary loading text while jumping out of via-OS into Android
+      this.centerNode.innerHTML = `<h2 style="color:var(--matrix-green); text-shadow:0 0 20px var(--matrix-green); border:1px solid var(--matrix-green); padding:20px;">[ INITIATING HANDOFF : ${glyphIntent.name.toUpperCase()} ]</h2>`;
+      this.centerNode.classList.remove('warp-out');
+      this.centerNode.classList.add('warp-in');
+
+      // Execute Native Action
+      if (glyphIntent.action === "link") {
+        // Try deep linking to Android app
+        window.location.href = glyphIntent.link;
+        
+        // Setup a 1.5s fallback to trigger the PWA-safe web equivalent if native fails
+        setTimeout(() => {
+          // If the page is still active here, the native link probably failed
+          window.location.href = glyphIntent.fallback;
+        }, 1500);
+      } 
+      else if (glyphIntent.action === "file_picker") {
+        const filePicker = document.getElementById('native-file-picker');
+        if (filePicker) filePicker.click();
+        
+        // Reset the OS back to Core after summoning the file intent
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('os:pattern_locked', { detail: { seed: '0,0' } }));
+        }, 800);
+      }
+      return; 
+    }
+
+    // ─── 2. INTERNAL: Procedural Infinite Spatial Skyscraper ───
+    
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
 
