@@ -138,17 +138,13 @@ class SpatialMatrix {
   }
 
   async handleWarpGate(seed) {
-    // ─── INTERCEPT: Brand Sigil Recognition ───
+    // ─── STEP A: Brand Master Key (Root Access) ───
     if (seed === window.masterKeySigil) {
       console.log("%c [VIA OS] Root Signature Recognized. Welcome, Architect.", "color: #ff671f; font-weight: bold; font-size: 1.2rem;");
-      
-      if (window.patternTracer) {
-        await window.patternTracer.triggerSigilFlash();
-      }
+      if (window.patternTracer) await window.patternTracer.triggerSigilFlash();
 
       this.currentZ = -99;
       this.currentSeed = seed;
-      
       const vaultRoom = { 
         id: 'developer-vault',
         name: "[∞, ∞] Dharam Daxini / classified logs", 
@@ -162,28 +158,27 @@ class SpatialMatrix {
       
       this.updateHUD(vaultRoom);
       this.dispatchNodeChanged(vaultRoom);
-      return;
+      return; // HARD STOP
+    }
+
+    // ─── STEP B: Deep Link App Registry (Native Hardware Apps) ───
+    const nativeApp = window.AppRegistry ? window.AppRegistry[seed] : null;
+    if (nativeApp) {
+      console.log(`[VIA OS] Launching Native App: ${nativeApp}`);
+      window.location.href = nativeApp;
+      return; // HARD STOP
+    }
+
+    // ─── STEP C: Fractal Navigation (2-Dot Center Out) ───
+    if (seed === "1,1|0,0" || seed === "0,0|1,1" || seed.length === 7) { 
+      // Example 2-dot logic placeholder
+      console.log("[VIA OS] Fractal Zoom Triggered");
+      // Execute zoom logic here...
     }
 
     this.currentSeed = seed;
 
-    // ─── 1. INTERCEPT: Glyph Launcher Deep Links ───
-    const glyphIntent = window.GlyphRegistry ? window.GlyphRegistry[seed] : null;
-
-    if (glyphIntent) {
-      const tempWin = window.WM.spawnWindow({ title: glyphIntent.name, z: 0 }, seed, true);
-      if (glyphIntent.action === "link") {
-        window.location.href = glyphIntent.link;
-        setTimeout(() => { window.location.href = glyphIntent.fallback; }, 1500);
-      } else if (glyphIntent.action === "file_picker") {
-        const filePicker = document.getElementById('native-file-picker');
-        if (filePicker) filePicker.click();
-        setTimeout(() => { tempWin.remove(); }, 800);
-      }
-      return; 
-    }
-
-    // ─── 2. INTERCEPT: Macro Ecosystem Routing ───
+    // ─── STEP D: Macro Ecosystem Routing ───
     const zoneId = MACRO_REGISTRY[seed];
     const zone = zoneId === 'root' 
       ? { id: 'root', name: "ViaDecide Root", lore: "The master control nexus for all ecosystem tools.", tools: [] }
@@ -195,13 +190,12 @@ class SpatialMatrix {
       window.WM.spawnWindow(room, seed);
       this.updateHUD(room);
       this.dispatchNodeChanged(room);
-      return;
+      return; // HARD STOP
     }
 
-    // ─── 3. INTERNAL: Procedural Infinite Spatial Skyscraper ───
+    // ─── STEP E: Procedural Fallback (The Uncharted Tower) ───
     const room = RoomMatrix.getRoom(seed);
     this.currentZ = room.z;
-
     window.WM.spawnWindow(room, seed);
     this.updateHUD(room);
     this.dispatchNodeChanged(room);

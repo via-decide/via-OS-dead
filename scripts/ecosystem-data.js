@@ -102,3 +102,8 @@ window.ZONES = [
     ]
   }
 ];
+window.AppRegistry = {
+  "0,0|1,0|2,0": "whatsapp://send",
+  "0,1|1,1|2,1": "spotify://",
+  "0,2|1,2|2,2": "vnd.youtube://"
+};
