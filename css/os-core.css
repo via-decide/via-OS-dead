@@ -74,13 +74,7 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-/* Node grid positions within the 300vw × 300vh canvas */
-
-/* Node grid positions within the 300vw × 300vh canvas */
-#node-center { top: 100vh; left: 100vw; }
-#node-up     { top: 0vh;   left: 100vw; }
-#node-right  { top: 100vh; left: 200vw; }
-#node-left   { top: 100vh; left: 0vw;   }
+/* Nodes are injected and positioned dynamically via inline styles by SpatialMatrix */
 
 /* ════════════════════════════════════════════════════════════
    HUD — ROOM NAME PANEL (top center)

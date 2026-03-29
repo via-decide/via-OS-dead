@@ -6,24 +6,46 @@
  */
 
 // =============================================================================
-// ROOM DICTIONARY — [X,Y,Z] → immersive name + description
+// PROCEDURAL ROOM ENGINE — Infinite Deterministic Generation
 // =============================================================================
-const RoomDictionary = {
-  '0,0,0':   { title: 'Galaxy Center',      desc: 'Main Nexus' },
-  '0,-1,0':  { title: 'Research Wing',      desc: 'Data Ops' },
-  '0,-1,-1': { title: 'Research Archives',  desc: 'Deep Storage' },
-  
-  // Discoverable via diagonal swiping
-  '1,0,0':   { title: 'Simulation Chamber', desc: 'Games & logic sandbox.' },
-  '-1,0,0':  { title: 'Media Vault',        desc: 'Visual immersion and media archives.' },
-  '1,-1,0':  { title: 'Cloud Terminal',     desc: 'Northwest high-altitude portal.' },
-  '-1,-1,0': { title: 'Solar Array',        desc: 'Northeast power stabilization hub.' },
-  '1,1,0':   { title: 'Deep Cache',         desc: 'Southwest secure file storage.' },
-  '-1,1,0':  { title: 'Pattern Core',       desc: 'Southeast logic-389112 discoverable.' },
-  '0,0,-1':  { title: 'Command Core',       desc: 'Sub-level deep operations.' },
-};
+class ProceduralRoomEngine {
+  constructor() {
+    this.sectors = ["Nexus", "Obsidian", "Quantum", "Aegis", "Void", "Echo", "Helios", "Apex"];
+    this.departments = ["Archives", "Engineering", "Synthetics", "Logic Core", "Terminal", "Containment", "Armory", "Hub"];
+    this.descriptors = ["Classified operations", "Automated drone bay", "Abandoned data sector", "High-security vault", "Processing relay", "Dormant server farm"];
+  }
 
-window.RoomDictionary = RoomDictionary;
+  getRoom(x, y, z) {
+    if (x === 0 && y === 0 && z === 0) {
+      return { title: 'Galaxy Center', desc: 'The main nexus.' };
+    }
+
+    const hash = Math.abs(x * 13 + y * 31 + z * 17);
+    
+    const sector = this.sectors[hash % this.sectors.length];
+    const dept = this.departments[(hash * 7) % this.departments.length];
+    const desc = this.descriptors[(hash * 11) % this.descriptors.length];
+
+    if (z === 0) {
+      return { 
+        title: `${sector} ${dept}`, 
+        desc: `Surface Level: ${desc}` 
+      };
+    } else if (z < 0) {
+      return { 
+        title: `${sector} ${dept} // Sub-Level ${Math.abs(z)}`, 
+        desc: `Deep Storage: ${desc}` 
+      };
+    } else {
+      return { 
+        title: `${sector} ${dept} // Tower ${z}`, 
+        desc: `Atmospheric: ${desc}` 
+      };
+    }
+  }
+}
+
+const RoomMatrix = new ProceduralRoomEngine();
 
 // =============================================================================
 // GESTURE INTERCEPTOR — 8-Way Angular Logic
@@ -136,7 +158,7 @@ class SpatialMatrix {
   }
 
   getRoomAt(x, y, z) {
-    return RoomDictionary[this.getRoomKey(x, y, z)] || null;
+    return RoomMatrix.getRoom(x, y, z);
   }
 
   getCurrentRoom() {
@@ -184,18 +206,19 @@ class SpatialMatrix {
     const tx = this.currentX + moveX;
     const ty = this.currentY + moveY;
 
+    // Procedural engine guarantees a room exists at any coordinate
     if (this.getRoomAt(tx, ty, this.currentZ)) {
       this.currentX = tx;
       this.currentY = ty;
+      
+      // Infinite DOM scaling — ensure node exists visually
+      this.ensureNodeExists(this.currentX, this.currentY);
+      
       this.updateCamera();
       this.updateHUD();
       this.updateAllNodeLabels();
       this.checkZAxis(); // Update elevator buttons
       this.dispatchNodeChanged();
-    } else {
-      // Allow multi-axis depth discovery
-      // e.g. swiping S twice triggers floor shift if bottom is reached
-      this.triggerResistance();
     }
   }
 
@@ -234,32 +257,32 @@ class SpatialMatrix {
     });
   }
 
-  ensureDiscoveryNodes() {
-    // Generate DOM elements for discoverable rooms if they don't exist
-    Object.keys(RoomDictionary).forEach(key => {
-      const [x, y, z] = key.split(',').map(n => parseInt(n));
-      if (z !== 0) return; // focus on surface discovery for now
+  ensureNodeExists(x, y) {
+    const existing = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
+    if (!existing) {
+      const node = document.createElement('div');
+      node.className = 'os-node discovery-node';
+      node.setAttribute('data-x', x);
+      node.setAttribute('data-y', y);
+      node.innerHTML = `<h2>Loading...</h2>`;
       
-      const existing = document.querySelector(`.os-node[data-x="${x}"][data-y="${y}"]`);
-      if (!existing) {
-        const node = document.createElement('div');
-        node.className = 'os-node discovery-node';
-        node.setAttribute('data-x', x);
-        node.setAttribute('data-y', y);
-        node.innerHTML = `<h2>${RoomDictionary[key].title}</h2>`;
-        
-        // Logical grid placement
-        // Center is 100, 100.
-        // x=1 is 0. x=-1 is 200.
-        // y=-1 is 0. y=1 is 200.
-        const top = (y === -1) ? 0 : (y === 0) ? 100 : 200;
-        const left = (x === 1) ? 0 : (x === 0) ? 100 : 200;
-        
-        node.style.top = `${top}vh`;
-        node.style.left = `${left}vw`;
-        this.canvas.appendChild(node);
+      // Calculate dynamic VW/VH position relative to 0,0 center at 100vw, 100vh
+      const top = 100 + (y * 100);
+      const left = 100 + (x * 100);
+      
+      node.style.top = `${top}vh`;
+      node.style.left = `${left}vw`;
+      this.canvas.appendChild(node);
+    }
+  }
+
+  ensureDiscoveryNodes() {
+    // Generate initial ring around Lobby to ensure immediate visual context
+    for (let y = -1; y <= 1; y++) {
+      for (let x = -1; x <= 1; x++) {
+        this.ensureNodeExists(x, y);
       }
-    });
+    }
   }
 
   dispatchNodeChanged() {
@@ -278,12 +301,10 @@ class SpatialMatrix {
 
   checkZAxis() {
     if (!this.btnAscend || !this.btnDescend) return;
-
-    const hasUp   = this.getRoomAt(this.currentX, this.currentY, this.currentZ + 1);
-    const hasDown = this.getRoomAt(this.currentX, this.currentY, this.currentZ - 1);
-
-    this.btnAscend.style.display  = hasUp   ? 'flex' : 'none';
-    this.btnDescend.style.display = hasDown ? 'flex' : 'none';
+    
+    // In infinite procedural generation, there is always an up and down
+    this.btnAscend.style.display  = 'flex';
+    this.btnDescend.style.display = 'flex';
   }
 
   attachZButtonListeners() {
