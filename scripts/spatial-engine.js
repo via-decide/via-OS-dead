@@ -120,18 +120,22 @@ class SpatialMatrix {
   }
 
   /**
-   * Initialize the 3x3 minimap grid
+   * Initialize the 3x3 minimap grid with .map-node class and data-coord attribute
    */
   initMinimap() {
+    // Get SVG and clear existing content (except SVG)
+    const traceCanvas = this.minimap.querySelector('#trace-canvas');
     this.minimap.innerHTML = '';
+    this.minimap.appendChild(traceCanvas);
 
     // Create 3x3 dot grid for coordinates [-1,-1] to [1,1]
     for (let y = -1; y <= 1; y++) {
       for (let x = -1; x <= 1; x++) {
         const dot = document.createElement('div');
-        dot.className = 'hud-dot';
+        dot.className = 'hud-dot map-node';
         dot.setAttribute('data-x', x);
         dot.setAttribute('data-y', y);
+        dot.setAttribute('data-coord', `${x},${y}`);
 
         // Mark the current active position
         if (x === this.currentX && y === this.currentY) {

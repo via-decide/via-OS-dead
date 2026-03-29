@@ -121,10 +121,13 @@
     </div>
   </div>
 
-  <!-- PHASE 1: HOLOGRAPHIC MINIMAP HUD -->
-  <div id="os-minimap" class="hud-glass"></div>
+  <!-- PHASE 1: HOLOGRAPHIC MINIMAP HUD with PATTERN TRACE SVG -->
+  <div id="os-minimap" class="hud-glass">
+    <svg id="trace-canvas" class="trace-overlay" viewBox="0 0 120 120"></svg>
+  </div>
 
   <script src="scripts/spatial-engine.js"></script>
+  <script src="scripts/pattern-tracer.js"></script>
 
 </body>
 </html>
