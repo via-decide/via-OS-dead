@@ -92,6 +92,7 @@ class SpatialMatrix {
     this.roomDesc  = document.getElementById('hud-room-desc');
     this.btnDescend = document.getElementById('btn-descend');
     this.btnAscend  = document.getElementById('btn-ascend');
+    this.homeGlint  = document.getElementById('home-glint');
 
     // 3D global OS state
     this.currentX = 0;
@@ -106,6 +107,9 @@ class SpatialMatrix {
     this.updateZButtons();
     this.attachMinimapListener();
     this.attachZButtonListeners();
+    this.attachHomeGlintListener();
+    this.updateNodeVisuals();
+    this.updateHomePersistence();
   }
 
   // ─── ROOM HELPERS ───────────────────────────────────────────────────────────
@@ -158,6 +162,8 @@ class SpatialMatrix {
       this.updateHUD();
       this.updateAllNodeLabels();
       this.updateZButtons();
+      this.updateNodeVisuals(); // Apply focal scaling
+      this.updateHomePersistence(); // Update return glint
       this.dispatchNodeChanged();
     } else {
       this.triggerResistance();
@@ -211,6 +217,8 @@ class SpatialMatrix {
     this.updateHUD();
     this.updateAllNodeLabels();
     this.updateZButtons();
+    this.updateNodeVisuals();
+    this.updateHomePersistence();
     this.dispatchNodeChanged();
   }
 
@@ -287,6 +295,56 @@ class SpatialMatrix {
   triggerZTransition(direction) {
     this.canvas.classList.add(`z-transition-${direction}`);
     setTimeout(() => this.canvas.classList.remove(`z-transition-${direction}`), 700);
+  }
+
+  // ─── VISUAL WEIGHTS & FOCUS ──────────────────────────────────────────────────
+
+  updateNodeVisuals() {
+    document.querySelectorAll('.os-node').forEach(node => {
+      const nx = parseInt(node.getAttribute('data-x'));
+      const ny = parseInt(node.getAttribute('data-y'));
+
+      if (nx === this.currentX && ny === this.currentY) {
+        node.classList.add('focal-node');
+      } else {
+        node.classList.remove('focal-node');
+      }
+    });
+  }
+
+  updateHomePersistence() {
+    if (!this.homeGlint) return;
+
+    // Is the user currently at the Lobby/Home (0,0)?
+    const isAtHome = this.currentX === 0 && this.currentY === 0;
+
+    if (isAtHome) {
+      this.homeGlint.style.display = 'none';
+    } else {
+      this.homeGlint.style.display = 'flex';
+      
+      // Calculate Vector to Home (which is at origin, but relative to our view)
+      // Visual Home is at [100vw, 100vh] in canvas coordinates.
+      // Current Camera is at [translateX, translateY]
+      
+      const angle = Math.atan2(this.currentY, this.currentX); // angle to origin
+      
+      // Place glint on the screen edge pointing to Home
+      const padding = 20;
+      const xPos = Math.cos(angle + Math.PI) * (window.innerWidth / 2 - padding);
+      const yPos = Math.sin(angle + Math.PI) * (window.innerHeight / 2 - padding);
+
+      this.homeGlint.style.left = `calc(50% + ${xPos}px - 20px)`;
+      this.homeGlint.style.top = `calc(50% - ${yPos}px - 20px)`;
+    }
+  }
+
+  attachHomeGlintListener() {
+    if (this.homeGlint) {
+      this.homeGlint.addEventListener('click', () => {
+        this.teleportTo(0, 0, 0);
+      });
+    }
   }
 
   // ─── EVENTS & RESISTANCE ────────────────────────────────────────────────────
