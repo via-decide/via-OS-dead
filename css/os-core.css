@@ -8,6 +8,7 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  touch-action: none;
 }
 
 #viewport-window {
@@ -27,8 +28,8 @@ body {
   top: 0;
   left: 0;
   /* Start centered by default. The JS will apply explicit translate immediately. */
-  transform: translate(-100vw, -100vh);
-  /* The exact iOS snappy physics constraint requested */
+  transform: translate3d(-100vw, -100vh, 0);
+  /* GPU-accelerated snappy physics with cubic-bezier easing for weighty feel */
   transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
 }
@@ -79,4 +80,40 @@ body {
   top: 100vh;
   left: 0vw;
   /* Games & Logic (X=1) */
+}
+
+/* PHASE 1: HOLOGRAPHIC MINIMAP HUD */
+#os-minimap {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 120px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: rgba(2, 2, 5, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  z-index: 1000;
+}
+
+.hud-dot {
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.hud-dot.active {
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 8px rgba(0, 255, 100, 0.8);
 }
