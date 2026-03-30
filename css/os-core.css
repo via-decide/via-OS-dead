@@ -201,6 +201,9 @@ body {
   border-radius: 32px;
   z-index: 9999;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  touch-action: none; /* Prevent swipe-to-scroll hijacking while tracing */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .hud-dot {
