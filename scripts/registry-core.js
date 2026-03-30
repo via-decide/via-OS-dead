@@ -8,29 +8,29 @@
 window.UserRegistry = {
   // Pre-loaded "Day One" Portfolio State
   defaults: {
-    // SkillHex -> Pattern 2-5-8 (Right vertical slice)
-    "2,0|2,1|2,2": {
+    // SkillHex -> Right column swipe (x=1, y=-1 to 1)
+    "1,-1|1,0|1,1": {
       name: "SkillHex",
       url: "../decide.engine-tools/tools/games/skillhex-mission-control/index.html",
       icon: "🎯",
       lore: "Interactive hiring operations console."
     },
-    // Alchemist -> Pattern 0-3-6 (Left vertical slice)
-    "0,0|0,1|0,2": {
+    // Alchemist -> Left column swipe (x=-1, y=-1 to 1)
+    "-1,-1|-1,0|-1,1": {
       name: "Alchemist",
       url: "../VIA/alchemist_app/index.html",
       icon: "🧪",
       lore: "Swipe-based chemistry learning crucible."
     },
-    // Viaco -> Pattern 3-4-5 (Middle horizontal - custom mapping to center row)
-    "0,1|1,1|2,1": {
+    // Viaco -> Horizontal center swipe (y=0, x=-1 to 1)
+    "-1,0|0,0|1,0": {
       name: "Viaco",
       url: "../VIA/viadecide.html",
       icon: "💼",
       lore: "AI Agent Business Hub."
     },
-    // Mars Rover -> Pattern 0-4-8 (Diagonal slice)
-    "0,0|1,1|2,2": {
+    // Mars Rover -> Diagonal swipe top-left to bottom-right
+    "-1,-1|0,0|1,1": {
       name: "Mars Rover",
       url: "../decide.engine-tools/mars.html",
       icon: "🚀",
@@ -51,6 +51,7 @@ window.UserRegistry = {
     this.apps[pattern] = appData;
     localStorage.setItem('viaos_user_registry', JSON.stringify(this.apps));
     this.merged = { ...this.defaults, ...this.apps };
+    window.AppRegistry = this.merged; // keep shim in sync
     window.dispatchEvent(new CustomEvent('os:registry_updated'));
   },
 
@@ -62,5 +63,8 @@ window.UserRegistry = {
 // Auto-init on load
 UserRegistry.init();
 
-// Maintain legacy AppRegistry shim for spatial-engine backward compatibility if needed
-window.AppRegistry = window.UserRegistry.merged;
+// AppRegistry shim — always reflects current merged state via getter
+Object.defineProperty(window, 'AppRegistry', {
+  get() { return window.UserRegistry.merged; },
+  configurable: true
+});
