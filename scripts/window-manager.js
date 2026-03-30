@@ -26,6 +26,12 @@ const TOOLS_BASE = 'https://via-decide.github.io/decide.engine-tools/tools';
 class WindowManager {
   constructor() {
     this.stack = document.getElementById('window-manager');
+
+    // Prevent iframe scroll from bleeding into tracer underneath.
+    this.stack.addEventListener('touchmove', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
+
     this.maxWindows = 2;
     this.attachListeners();
   }
