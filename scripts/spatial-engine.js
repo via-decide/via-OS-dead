@@ -190,7 +190,7 @@ class SpatialMatrix {
 
       const vaultWin = window.WM.spawnWindow(vaultRoom, seed);
       const body = vaultWin.querySelector('.window-body');
-      body.innerHTML = `<iframe src="./tools/developer-vault/index.html" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+      body.innerHTML = `<iframe src="https://via-decide.github.io/decide.engine-tools/tools/developer-vault/index.html" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
       
       this.updateHUD(vaultRoom);
       this.dispatchNodeChanged(vaultRoom);
@@ -276,6 +276,7 @@ class SpatialMatrix {
       html += `<div id="room-environment" class="node-grid">`;
       if (room.tools && room.tools.length > 0) {
         room.tools.forEach(tool => {
+          if (!room.zoneId || !tool.id) return;
           html += `<button class="access-node tool-node" data-zone="${room.zoneId}" data-tool="${tool.id}" title="${tool.desc}">[ ${tool.name.toUpperCase()} ]</button>`;
         });
       } else {

@@ -27,6 +27,8 @@ class WindowManager {
   }
 
   attachListeners() {
+    const TOOLS_BASE = 'https://via-decide.github.io/decide.engine-tools/tools';
+
     this.stack.addEventListener('click', (e) => {
       // 1. Handle Window Close
       if (e.target.classList.contains('header-close-btn')) {
@@ -42,10 +44,35 @@ class WindowManager {
         const toolId = toolBtn.dataset.tool;
         const toolName = toolBtn.textContent.replace(/[\[\]]/g, '').trim();
         
-        const toolUrl = `../decide.engine-tools/tools/${zoneId}/${toolId}/index.html`;
+        const toolUrl = `${TOOLS_BASE}/${zoneId}/${toolId}/index.html`;
         const toolWin = this.spawnWindow({ title: toolName, z: 0 }, `tool:${toolId}`);
         const body = toolWin.querySelector('.window-body');
         body.innerHTML = `<iframe src="${toolUrl}" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+        
+        const iframe = body.querySelector('iframe');
+        iframe.addEventListener('load', () => {
+          try {
+            const doc = iframe.contentDocument;
+            if (doc && doc.title === '' && doc.body.children.length === 0) {
+              throw new Error('empty');
+            }
+          } catch (crossOriginOrEmpty) {
+            if (crossOriginOrEmpty.message === 'empty') {
+              body.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;
+                            justify-content:center;height:100%;gap:12px;
+                            color:#444;font-size:11px;font-family:var(--font-mono);
+                            text-align:center;padding:20px;">
+                  [ TOOL NOT YET DEPLOYED ]
+                  <span style="color:#333;font-size:9px;">${toolUrl}</span>
+                  <a href="${toolUrl}" target="_blank"
+                     style="color:var(--matrix-green);font-size:9px;margin-top:8px;">
+                    OPEN IN NEW TAB ↗️
+                  </a>
+                </div>`;
+            }
+          }
+        });
         return;
       }
 
