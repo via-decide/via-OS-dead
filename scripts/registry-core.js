@@ -11,28 +11,28 @@ window.UserRegistry = {
     // SkillHex -> Pattern 2-5-8 (Right vertical slice)
     "2,0|2,1|2,2": {
       name: "SkillHex",
-      url: "https://via-decide.github.io/decide.engine-tools/tools/games/skillhex-mission-control/index.html",
+      url: "../decide.engine-tools/tools/games/skillhex-mission-control/index.html",
       icon: "🎯",
       lore: "Interactive hiring operations console."
     },
     // Alchemist -> Pattern 0-3-6 (Left vertical slice)
     "0,0|0,1|0,2": {
       name: "Alchemist",
-      url: "https://via-decide.github.io/VIA/alchemist_app/index.html",
+      url: "../VIA/alchemist_app/index.html",
       icon: "🧪",
       lore: "Swipe-based chemistry learning crucible."
     },
     // Viaco -> Pattern 3-4-5 (Middle horizontal - custom mapping to center row)
     "0,1|1,1|2,1": {
       name: "Viaco",
-      url: "https://via-decide.github.io/VIA/viadecide.html",
+      url: "../VIA/viadecide.html",
       icon: "💼",
       lore: "AI Agent Business Hub."
     },
     // Mars Rover -> Pattern 0-4-8 (Diagonal slice)
     "0,0|1,1|2,2": {
       name: "Mars Rover",
-      url: "https://via-decide.github.io/decide.engine-tools/mars.html",
+      url: "../decide.engine-tools/mars.html",
       icon: "🚀",
       lore: "Cognitive assessment and rover simulation."
     }
