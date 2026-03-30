@@ -73,49 +73,70 @@ class PatternTracer {
   }
 
   attachListeners() {
-    this.minimap.addEventListener('touchstart', (e) => this.handleStart(e), { passive: false });
-    this.minimap.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
-    this.minimap.addEventListener('touchend', (e) => this.handleEnd(e), { passive: false });
+    this.minimap.addEventListener('pointerdown', (e) => this.handleStart(e), { passive: false });
+    window.addEventListener('pointermove', (e) => this.handleMove(e), { passive: false });
+    window.addEventListener('pointerup', (e) => this.handleEnd(e));
+  }
 
-    // Global hooks to allow drawing anywhere
-    window.addEventListener('mousedown', (e) => this.handleStart(e));
-    window.addEventListener('mousemove', (e) => this.handleMove(e));
-    window.addEventListener('mouseup', (e) => this.handleEnd(e));
-    
-    window.addEventListener('touchmove', (e) => this.handleMove(e), { passive: false });
-    window.addEventListener('touchend', (e) => this.handleEnd(e), { passive: false });
+  getPointerPos(e) {
+    const rect = this.minimap.getBoundingClientRect();
+    const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  checkNodeHit(x, y) {
+    const hitRadius = 24;
+    let hitDot = null;
+    let nearestDistance = Infinity;
+
+    this.dots.forEach((dot) => {
+      const rect = dot.getBoundingClientRect();
+      const parentRect = this.minimap.getBoundingClientRect();
+      const cx = (rect.left + rect.width / 2) - parentRect.left;
+      const cy = (rect.top + rect.height / 2) - parentRect.top;
+      const distance = Math.hypot(x - cx, y - cy);
+
+      if (distance <= hitRadius && distance < nearestDistance) {
+        nearestDistance = distance;
+        hitDot = dot;
+      }
+    });
+
+    if (!hitDot) return;
+
+    const coord = `${hitDot.dataset.x},${hitDot.dataset.y}`;
+    if (this.patternSequence[this.patternSequence.length - 1] !== coord) {
+      this.patternSequence.push(coord);
+      hitDot.classList.add('active');
+      this.updatePath();
+    }
   }
 
   handleStart(e) {
+    if (e.cancelable) e.preventDefault();
     this.isTracing = true;
     this.patternSequence = [];
     this.clearDots();
     this.resetStyles();
     this.updatePath();
-    this.handleMove(e);
+    const pos = this.getPointerPos(e);
+    this.checkNodeHit(pos.x, pos.y);
+    this.updatePath();
   }
 
   handleMove(e) {
     if (!this.isTracing) return;
-    if (e.cancelable) e.preventDefault();
-
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-    const elementOnTouch = document.elementFromPoint(clientX, clientY);
-    const dot = elementOnTouch ? elementOnTouch.closest('.hud-dot') : null;
-
-    if (dot) {
-      const x = dot.dataset.x;
-      const y = dot.dataset.y;
-      const coord = `${x},${y}`;
-
-      if (this.patternSequence[this.patternSequence.length - 1] !== coord) {
-        this.patternSequence.push(coord);
-        dot.classList.add('active');
-        this.updatePath();
-      }
+    if (e.cancelable && e.target === this.minimap) {
+      e.preventDefault();
     }
+
+    const pos = this.getPointerPos(e);
+    this.checkNodeHit(pos.x, pos.y);
+    this.updatePath();
   }
 
   handleEnd(e) {
