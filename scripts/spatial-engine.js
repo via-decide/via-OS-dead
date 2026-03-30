@@ -202,8 +202,24 @@ class SpatialMatrix {
     // ─── STEP B: Deep Link App Registry (Native Hardware Apps) ───
     const nativeApp = window.AppRegistry ? window.AppRegistry[seed] : null;
     if (nativeApp) {
-      this.updateDiagnostics(seed, 'DEEP_LINK', `Launched: ${nativeApp}`);
-      window.location.href = nativeApp;
+      const appUrl = (typeof nativeApp === 'string') ? nativeApp : nativeApp.url;
+      const appTitle = (typeof nativeApp === 'string') ? 'Linked App' : (nativeApp.name || 'Linked App');
+
+      this.updateDiagnostics(seed, 'DEEP_LINK', `Opening: ${appTitle}`);
+
+      if (appUrl) {
+        const isHttp = /^https?:\/\//i.test(appUrl) || appUrl.startsWith('./') || appUrl.startsWith('../');
+        if (isHttp) {
+          const appWin = window.WM.spawnWindow({ title: appTitle, z: 0 }, `app:${seed}`);
+          const body = appWin.querySelector('.window-body');
+          body.innerHTML = `<iframe src="${appUrl}" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+        } else {
+          window.location.href = appUrl;
+        }
+      } else {
+        this.updateDiagnostics(seed, 'DEEP_LINK', 'Registry entry missing URL');
+      }
+
       return; // HARD STOP
     }
 
