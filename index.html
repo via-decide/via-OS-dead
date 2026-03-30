@@ -2,159 +2,203 @@
 <html lang="en">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ViaOS</title>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>VIA Spatial OS</title>
 
-<style>
+  <!-- PWA MANIFEST -->
+  <link rel="manifest" href="manifest.json">
 
-body{
-margin:0;
-background:#030508;
-color:#e5e7eb;
-font-family:system-ui;
-overflow:hidden;
-}
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#ff671f">
+  <link rel="apple-touch-icon" href="./icon-512.png">
 
-/* top bar */
+  <link rel="stylesheet" href="css/os-core.css">
 
-#topbar{
-position:fixed;
-top:0;
-left:0;
-right:0;
-height:32px;
-background:#05070c;
-border-bottom:1px solid #1e293b;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 10px;
-font-size:13px;
-}
+  <style>
+    /* ── Install Trap — inline to guarantee immediate render ── */
+    #install-trap {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(2, 2, 5, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      box-sizing: border-box;
+    }
 
-/* launcher */
+    #install-trap .trap-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: rgba(0, 255, 150, 0.7);
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
 
-#launcher{
-position:fixed;
-bottom:20px;
-left:50%;
-transform:translateX(-50%);
-display:flex;
-gap:8px;
-background:#0b0f18;
-border:1px solid #1e293b;
-padding:10px;
-border-radius:10px;
-}
+    #install-trap h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin: 0 0 14px;
+      letter-spacing: -0.5px;
+    }
 
-.launcher-btn{
-background:#111827;
-border:1px solid #1e293b;
-color:white;
-padding:8px 12px;
-border-radius:6px;
-cursor:pointer;
-}
+    #install-trap p {
+      font-size: 15px;
+      color: #a0a8b8;
+      line-height: 1.6;
+      max-width: 300px;
+      margin: 0;
+    }
 
-.launcher-btn:hover{
-background:#1f2937;
-}
+    #install-trap .ios-hint {
+      margin-top: 24px;
+      padding: 14px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+      max-width: 280px;
+      line-height: 1.5;
+    }
 
-/* window manager */
+    .icon-share {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid currentColor;
+      border-radius: 3px;
+      position: relative;
+      margin: 0 4px;
+      vertical-align: middle;
+    }
 
-#window-manager{
-position:absolute;
-inset:0;
-pointer-events:none;
-}
-
-/* window */
-
-.os-window{
-position:absolute;
-width:640px;
-height:420px;
-background:#0b0f18;
-border:1px solid #1e293b;
-border-radius:8px;
-box-shadow:0 15px 40px rgba(0,0,0,.6);
-pointer-events:auto;
-}
-
-.window-header{
-height:32px;
-background:#111827;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 10px;
-cursor:move;
-font-size:13px;
-}
-
-.window-frame{
-width:100%;
-height:calc(100% - 32px);
-border:none;
-}
-
-</style>
+    .icon-share::after {
+      content: '↑';
+      position: absolute;
+      top: -11px;
+      left: 4px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 
-<body>
+<div id="os-diagnostics" class="debug-hud" style="display: none;"></div>
 
-<div id="topbar">
-<div>ViaOS</div>
-<div id="clock"></div>
-</div>
+  <!-- ══════════════════════════════════════════════════════
+       INSTALL TRAP — blocks non-installed browser sessions
+       ══════════════════════════════════════════════════════ -->
+  <div id="install-trap">
+    <div class="trap-logo">VIA OS</div>
+    <h1>Initialize OS Endpoint</h1>
 
-<div id="window-manager"></div>
+    <!-- PHASE 1: Android Native Install CTA (shown by install-manager.js) -->
+    <button id="btn-install-os" class="btn-glitch">INITIALIZE VIA OS</button>
 
-<div id="launcher">
+    <!-- iOS fallback instructions -->
+    <div class="ios-hint">
+      Tap <span class="icon-share"></span> <strong>Share</strong> then select
+      <strong>Add to Home Screen</strong> to enter the Spatial OS.
+    </div>
+  </div>
 
-<button class="launcher-btn"
-onclick="openTool('decision-core','decision-matrix')">
-Decision Matrix
-</button>
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(() => {
+        console.log('[VIA OS] Service Worker Registered');
+      });
+    }
 
-<button class="launcher-btn"
-onclick="openTool('creator-studio','promptalchemy')">
-PromptAlchemy
-</button>
+    // Verify Standalone Execution — remove trap if already installed
+    (function checkStandalone() {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone ||
+        document.referrer.includes('android-app://');
 
-<button class="launcher-btn"
-onclick="openTool('analytics-bay','json-formatter')">
-JSON Formatter
-</button>
+      const trap = document.getElementById('install-trap');
+      if (isStandalone && trap) {
+        trap.remove();
+      }
 
-<button class="launcher-btn"
-onclick="openTool('game-arena','vialogic')">
-ViaLogic
-</button>
+      window.matchMedia('(display-mode: standalone)').addListener(() => {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+          const t = document.getElementById('install-trap');
+          if (t) t.remove();
+        }
+      });
+    })();
+  </script>
 
-</div>
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Room Name Panel (top center)
+       ══════════════════════════════════════════════════════ -->
+  <div id="hud-room-name-panel">
+    <div id="hud-room-name">Main Room</div>
+    <div id="hud-room-desc">The main nexus of all operations.</div>
+  </div>
 
-<script src="./scripts/window-manager.js"></script>
-<script src="./scripts/spatial-engine.js"></script>
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Conclude Session (top right)
+       ══════════════════════════════════════════════════════ -->
+  <button id="btn-conclude-session" class="btn-glitch" title="Compile mission into PDF souvenir">Conclude
+    Mission</button>
 
-<script>
+  <!-- ══════════════════════════════════════════════════════
+       SPATIAL MATRIX — 3D Canvas
+       Rooms are prodecurally generated via ProceduralRoomEngine
+       ══════════════════════════════════════════════════════ -->
+  <div id="window-manager" class="window-stack">
+    <!-- Split-screen glass panels injected dynamically -->
+  </div>
 
-function openTool(zone,tool){
-window.WM.openTool(zone,tool)
-}
+  <!-- ══════════════════════════════════════════════════════
+       HUD — Holographic Minimap + Depth Label
+       ══════════════════════════════════════════════════════ -->
+  <div id="os-minimap" class="hud-glass"></div>
+  <div id="hud-depth-label">Surface</div>
 
-function clock(){
-const n=new Date()
-document.getElementById("clock").textContent=
-n.getHours().toString().padStart(2,"0")+":"+
-n.getMinutes().toString().padStart(2,"0")
-}
+  <!-- ══════════════════════════════════════════════════════
+       Access Nodes injected via ProceduralRoomEngine
+       ══════════════════════════════════════════════════════ -->
 
-setInterval(clock,1000)
-clock()
+  <!-- ══════════════════════════════════════════════════════
+       PDF Render Zone — hidden until session compilation
+       ══════════════════════════════════════════════════════ -->
+  <div id="pdf-render-zone"></div>
 
-</script>
+  <!-- ══════════════════════════════════════════════════════
+       GLYPH LAUNCHER NATIVE HOOKS
+       ══════════════════════════════════════════════════════ -->
+  <input type="file" id="native-file-picker" multiple style="display:none;" />
+
+  <!-- ══════════════════════════════════════════════════════
+       SCRIPTS
+       ══════════════════════════════════════════════════════ -->
+  <script src="scripts/ecosystem-data.js"></script>
+  <script src="scripts/window-manager.js"></script>
+  <script src="scripts/install-manager.js"></script>
+  <script src="scripts/pattern-tracer.js"></script>
+  <script src="scripts/registry-core.js"></script>
+  <script src="scripts/spatial-engine.js"></script>
+  <script src="scripts/session-compiler.js"></script>
 
 </body>
+
 </html>
