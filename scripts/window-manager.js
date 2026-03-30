@@ -19,6 +19,10 @@
  * Manages the glass-morphic split-screen panel ecosystem.
  */
 
+// Absolute base for all ecosystem tools — works on GitHub Pages, custom domain, or local.
+// Update this single constant if the tools repo ever moves.
+const TOOLS_BASE = 'https://via-decide.github.io/decide.engine-tools/tools';
+
 class WindowManager {
   constructor() {
     this.stack = document.getElementById('window-manager');
@@ -41,11 +45,42 @@ class WindowManager {
         const zoneId = toolBtn.dataset.zone;
         const toolId = toolBtn.dataset.tool;
         const toolName = toolBtn.textContent.replace(/[\[\]]/g, '').trim();
-        
-        const toolUrl = `../decide.engine-tools/tools/${zoneId}/${toolId}/index.html`;
+
+        // FIX: absolute URL — relative ../decide.engine-tools/ breaks on GitHub Pages
+        const toolUrl = `${TOOLS_BASE}/${zoneId}/${toolId}/index.html`;
+
         const toolWin = this.spawnWindow({ title: toolName, z: 0 }, `tool:${toolId}`);
         const body = toolWin.querySelector('.window-body');
         body.innerHTML = `<iframe src="${toolUrl}" style="width:100%; height:100%; border:none; background:transparent;"></iframe>`;
+
+        // FIX: iframe onerror does not fire for 404s — detect empty document on load
+        const iframe = body.querySelector('iframe');
+        iframe.addEventListener('load', () => {
+          try {
+            // Cross-origin frames throw on .contentDocument access — that means
+            // the page loaded successfully from another origin. Do nothing.
+            const doc = iframe.contentDocument;
+            if (doc && doc.title === '' && doc.body && doc.body.children.length === 0) {
+              throw new Error('empty');
+            }
+          } catch (err) {
+            if (err.message === 'empty') {
+              body.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;
+                            justify-content:center;height:100%;gap:12px;
+                            color:#444;font-size:11px;font-family:var(--font-mono);
+                            text-align:center;padding:20px;">
+                  [ TOOL NOT YET DEPLOYED ]
+                  <span style="color:#333;font-size:9px;">${toolUrl}</span>
+                  <a href="${toolUrl}" target="_blank"
+                     style="color:var(--matrix-green);font-size:9px;margin-top:8px;">
+                    OPEN IN NEW TAB ↗
+                  </a>
+                </div>`;
+            }
+            // Cross-origin error = loaded fine, ignore
+          }
+        });
         return;
       }
 
